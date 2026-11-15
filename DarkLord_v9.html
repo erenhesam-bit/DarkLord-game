@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Dark Lord - Final Form</title>
+<style>
+*{box-sizing:border-box; -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#090914;color:#fff;font-family:Tahoma,Arial;display:flex;justify-content:center}
+#wrap{width:min(100vw,900px);padding:10px}
+h2{text-align:center;margin:4px 0 8px;color:#d8b7ff;font-size:20px}
+#hud{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;font-size:13px}
+.meter{background:#26243a;border:1px solid #51486b;border-radius:10px;height:15px;overflow:hidden;margin-top:4px}
+.fill{height:100%;width:100%;transition:width .12s}
+#hpFill{background:linear-gradient(90deg,#e23b55,#ff9a9a)}
+#energyFill{background:linear-gradient(90deg,#713bdb,#d4a6ff)}
+#game{width:100%;display:block;background:#111126;border:2px solid #51486b;border-radius:12px;touch-action:none}
+#status{text-align:center;min-height:22px;color:#e1d4ff;font-size:13px;margin:6px}
+#controls{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(112px,.78fr);gap:9px;direction:ltr;align-items:end}
+.pad{grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,48px);gap:5px;align-self:end}
+.actions{grid-column:1;grid-row:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(3,48px);gap:6px;direction:rtl;align-self:end}
+button{border:1px solid #76639a;border-radius:12px;background:#29213f;color:white;font-weight:bold;font-size:14px;padding:12px 5px;touch-action:none;outline:none}
+button:active{background:#6345a0}
+.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+#finalBtn{grid-column:1/-1;background:linear-gradient(135deg,#57268e,#24133f);border:2px solid #e0b9ff;color:#fff;font-size:15px;min-height:48px}
+.actions button{min-height:48px;font-size:14px;box-shadow:inset 0 0 12px rgba(255,255,255,.06)}
+.actions button[data-power="fire"]{border-color:#ff8a48;background:linear-gradient(135deg,#71321f,#321b26)}
+.actions button[data-power="ice"]{border-color:#7ee7ff;background:linear-gradient(135deg,#15506d,#17263e)}
+.actions button[data-power="dark"]{border-color:#b58aff;background:linear-gradient(135deg,#43206f,#17132d)}
+.actions button[data-power="triple"]{border-color:#ffe08a;background:linear-gradient(135deg,#754a1c,#38204f)}
+@media(max-width:390px){#controls{grid-template-columns:minmax(108px,.78fr) minmax(0,1.35fr);gap:7px}button{padding:10px 3px;font-size:12px}.actions button{font-size:12px}}
+#finalBtn:disabled{opacity:.45}
+.actions button.cooling{filter:saturate(.4);opacity:.62;position:relative}
+.actions button.cooling::after{content:attr(data-cooldown);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,7,18,.72);border-radius:10px;color:#fff;font-size:16px;font-weight:bold}
+.actions button.ready{box-shadow:0 0 10px rgba(210,170,255,.28),inset 0 0 12px rgba(255,255,255,.08)}
+@media(max-width:390px){#controls{grid-template-columns:minmax(0,1.45fr) minmax(104px,.78fr);gap:7px}.pad{grid-template-rows:repeat(2,44px)}.actions{grid-template-rows:repeat(3,44px)}button{padding:9px 3px;font-size:12px}.actions button{font-size:12px}}
+#progress{text-align:center;color:#c9b9e8;font-size:12px;margin:4px 0 8px}
+#swordBtn{grid-column:1/-1;background:linear-gradient(135deg,#6b4a16,#342047);border:2px solid #ffe08a;color:#fff;font-size:13px}
+#swordBtn:disabled{opacity:.5}
+small{display:block;text-align:center;color:#bdb5d0;margin-top:7px}
+</style>
+</head>
+<body>
+<div id="wrap">
+<h2>⚔️ DARK LORD — FINAL FORM</h2>
+<div id="hud">
+ <div>سلامتی: <b id="hpText">100 / 100</b><div class="meter"><div id="hpFill" class="fill"></div></div></div>
+ <div>انرژی فاینال: <b id="energyText">0%</b><div class="meter"><div id="energyFill" class="fill" style="width:0%"></div></div></div>
+</div>
+<canvas id="game" width="720" height="405"></canvas>
+<div id="status">در حالت عادی دشمن‌ها را شکست بده تا انرژی فاینال پر شود.</div>
+<div id="progress">غول‌های شکست‌خورده: <b id="bossCount">0</b> | ارتقای قدرت: <b id="upgradeCount">0</b></div>
+<div id="controls">
+ <div class="pad">
+  <span></span><button data-key="up">▲</button><span></span>
+  <button data-key="left">◀</button><button data-key="down">▼</button><button data-key="right">▶</button>
+ </div>
+ <div class="actions">
+  <button data-power="fire">🔥 آتش</button><button data-power="ice">❄️ یخ</button>
+  <button data-power="dark">🌑 تاریکی</button><button data-power="triple">💥 سه‌عنصری</button>
+  <button id="finalBtn" disabled>FINAL FORM</button>
+  <button id="swordBtn" disabled>⚔️ شمشیر (پس از ۲ غول)</button>
+ </div>
+</div>
+<small>با حرکت جاخالی بده و با قدرت‌ها دشمن‌ها را شکست بده. هر ۲ غول، سلامتی و قدرتت بیشتر می‌شود.</small>
+</div>
+<script>
+const c=document.getElementById('game'),ctx=c.getContext('2d');
+const hpFill=document.getElementById('hpFill'),energyFill=document.getElementById('energyFill');
+const hpText=document.getElementById('hpText'),energyText=document.getElementById('energyText');
+const statusEl=document.getElementById('status'),finalBtn=document.getElementById('finalBtn');
+const swordBtn=document.getElementById('swordBtn');
+const bossCountEl=document.getElementById('bossCount'),upgradeCountEl=document.getElementById('upgradeCount');
+const keys={up:false,down:false,left:false,right:false};
+let player={x:360,y:205,r:15,hp:100,maxHp:100,inv:0};
+let enemies=[],shots=[],effects=[],energy=0,finalUntil=0,score=0,last=0,spawnTimer=0,dead=false,finalHealTimer=0;
+let bossesKilled=0,upgrades=0,swordUnlocked=false,swordCooldown=0,damageScale=1,swordClearing=false;
+const cooldowns={fire:0,ice:0,dark:0,triple:0};
+const cooldownLength={fire:2.2,ice:3.0,dark:2.6,triple:10.0};
+const normalNames={fire:'🔥 آتش',ice:'❄️ یخ',dark:'🌑 تاریکی',triple:'💥 سه‌عنصری'};
+const finalNames={fire:'☄️ جهنم‌فشان',ice:'🧊 صفر مطلق',dark:'🕳️ شکاف خلأ',triple:'🌌 انفجار نهایی'};
+const isFinal=()=>performance.now()<finalUntil;
+function spawn(){let side=Math.floor(Math.random()*4),x=side===0?15:side===1?705:Math.random()*720,y=side===2?15:side===3?390:Math.random()*405;
+ enemies.push({x,y,r:13,hp:34,max:34,speed:48+Math.random()*22,hit:0,boss:false});}
+const bossAbilities=[
+ {id:'fire',name:'آتشین',color:'#ff7138',damage:14,range:245},
+ {id:'ice',name:'یخبندان',color:'#76eaff',damage:11,range:220},
+ {id:'shadow',name:'موج تاریکی',color:'#b17aff',damage:16,range:270},
+ {id:'lightning',name:'صاعقه',color:'#ffe36b',damage:13,range:255}
+];
+function spawnBoss(){
+ const side=Math.floor(Math.random()*4),x=side===0?35:side===1?685:Math.random()*720,y=side===2?35:side===3?370:Math.random()*405;
+ const ability=bossAbilities[Math.floor(Math.random()*bossAbilities.length)];
+ enemies.push({x,y,r:25,hp:210,max:210,speed:31,boss:true,ability,abilityTimer:2.2});
+ statusEl.textContent='غول مرحله ظاهر شد! قدرت جادویی تصادفی: '+ability.name;
+}
+for(let i=0;i<5;i++)spawn();
+function gainEnergy(n){if(!isFinal())energy=Math.min(100,energy+n);}
+function killEnemy(i){
+ if(!enemies[i])return;
+ const wasBoss=enemies[i].boss;
+ enemies.splice(i,1);score++;gainEnergy(wasBoss?40:20);
+ if(wasBoss){
+  bossesKilled++;
+  if(bossesKilled>=2&&!swordUnlocked){
+   swordUnlocked=true;
+   statusEl.textContent='⚔️ شمشیر جادویی آزاد شد!';
+  }
+  if(bossesKilled%2===0){
+   upgrades++;
+   player.maxHp+=20;
+   player.hp=Math.min(player.maxHp,player.hp+20);
+   damageScale+=0.20;
+   statusEl.textContent='ارتقای دائمی! حداکثر سلامتی +۲۰ و قدرت حمله +۲۰٪';
+  }
+ }
+ if(!swordClearing&&score%5===0&&!enemies.some(e=>e.boss)){spawnBoss();}
+}
+function nearestEnemy(){
+ let best=null,bd=Infinity;
+ for(const e of enemies){const d=Math.hypot(e.x-player.x,e.y-player.y);if(d<bd){bd=d;best=e;}}
+ return best;
+}
+function burst(x,y,color,count=18,spread=1){
+ for(let n=0;n<count;n++){const a=Math.random()*Math.PI*2,s=(35+Math.random()*150)*spread;
+  effects.push({kind:'particle',x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.45+Math.random()*.45,max:.9,color,size:2+Math.random()*4});}
+}
+function attack(type){
+ if(dead)return;
+ if(cooldowns[type]>0){statusEl.textContent='این قدرت هنوز در حال شارژ است!';return;}
+ const fin=isFinal(),target=nearestEnemy();
+ const normalRange={fire:125,ice:125,dark:145,triple:175};
+ const finalRange={fire:215,ice:195,dark:230,triple:255};
+ const normalDamage={fire:30,ice:24,dark:27,triple:48};
+ const finalDamage={fire:88,ice:76,dark:82,triple:125};
+ const colors={fire:'#ff7138',ice:'#76eaff',dark:'#b17aff',triple:'#ffe18a'};
+ const color=colors[type],range=fin?finalRange[type]:normalRange[type],damage=(fin?finalDamage[type]:normalDamage[type])*damageScale;
+ cooldowns[type]=cooldownLength[type]*(fin?1.15:1);
+ if(target){
+  const dx=target.x-player.x,dy=target.y-player.y,d=Math.hypot(dx,dy)||1;
+  effects.push({kind:'orb',x:player.x,y:player.y,vx:dx/d*(fin?570:440),vy:dy/d*(fin?570:440),life:Math.min(.65,d/(fin?570:440)),max:.65,color,type});
+ }else effects.push({kind:'ring',x:player.x,y:player.y,life:.45,max:.45,color,r:12});
+ if(fin){
+  const advanced={fire:'INFERNO APOCALYPSE',ice:'ABSOLUTE ZERO',dark:'VOID RIFT',triple:'TRIPLE ELEMENT CATACLYSM'};
+  statusEl.textContent=advanced[type]+' — قدرت نهایی!';
+  effects.push({kind:'ring',x:player.x,y:player.y,life:.9,max:.9,color,r:type==='triple'?65:45});
+  burst(player.x,player.y,color,type==='triple'?55:30,1.55);
+ }else statusEl.textContent='قدرت جادویی عادی فعال شد!';
+ let hitAny=false;
+ for(let i=enemies.length-1;i>=0;i--){
+  const e=enemies[i],d=Math.hypot(e.x-player.x,e.y-player.y);
+  if(d<range){
+   e.hp-=damage;hitAny=true;
+   effects.push({kind:'impact',x:e.x,y:e.y,life:.32,max:.32,color,r:8});
+   burst(e.x,e.y,color,fin?22:9,fin?1.2:.7);
+   if(type==='ice'&&!fin)e.speed*=.55;
+   if(type==='ice'&&fin)e.speed=0;
+   if(e.hp<=0)killEnemy(i);
+  }
+ }
+ if(type==='triple')burst(player.x,player.y,'#fff0ad',fin?65:34,fin?1.8:1.2);
+ if(hitAny)statusEl.textContent=fin?'جادوی پیشرفته برخورد کرد!':'قدرت جادویی برخورد کرد!';
+}
+function activateFinal(){
+ if(energy<100||isFinal()||dead)return;
+ energy=0;finalUntil=performance.now()+10000;finalHealTimer=0;
+ statusEl.textContent='FINAL FORM فعال شد! قدرت‌ها تقویت شدند؛ ۱۰ ثانیه فرصت داری!';
+}
+finalBtn.addEventListener('click',activateFinal);
+function useSword(){
+ if(dead)return;
+ if(!swordUnlocked){statusEl.textContent='برای آزاد کردن شمشیر باید ۲ غول را شکست بدهی!';return;}
+ if(swordCooldown>0){statusEl.textContent='شمشیر هنوز در حال شارژ است!';return;}
+ swordCooldown=20;
+ const total=enemies.length;
+ swordClearing=true;
+ for(let i=enemies.length-1;i>=0;i--){
+  const e=enemies[i];
+  effects.push({kind:'ring',x:e.x,y:e.y,life:.85,max:.85,color:'#ffe08a',r:25});
+  burst(e.x,e.y,'#ffe08a',30,1.6);
+  killEnemy(i);
+ }
+ swordClearing=false;
+ statusEl.textContent=total>0?'⚔️ شمشیر جادویی تمام دشمنان را یک‌ضرب شکست داد!':'دشمنی در میدان وجود ندارد!';
+ burst(player.x,player.y,'#fff0ad',60,2);
+}
+swordBtn.addEventListener('pointerdown',e=>{e.preventDefault();useSword();});
+document.querySelectorAll('[data-power]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();attack(b.dataset.power)}));
+document.querySelectorAll('[data-key]').forEach(b=>{
+ const k=b.dataset.key;
+ b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;b.setPointerCapture(e.pointerId)});
+ const off=e=>{e.preventDefault();keys[k]=false};
+ b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('lostpointercapture',()=>keys[k]=false);
+});
+window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(k==='arrowup'||k==='w')keys.up=true;if(k==='arrowdown'||k==='s')keys.down=true;if(k==='arrowleft'||k==='a')keys.left=true;if(k==='arrowright'||k==='d')keys.right=true;});
+window.addEventListener('keyup',e=>{let k=e.key.toLowerCase();if(k==='arrowup'||k==='w')keys.up=false;if(k==='arrowdown'||k==='s')keys.down=false;if(k==='arrowleft'||k==='a')keys.left=false;if(k==='arrowright'||k==='d')keys.right=false;});
+function update(dt,now){
+ const finalActive=isFinal();
+ for(let i=effects.length-1;i>=0;i--){const fx=effects[i];fx.life-=dt;
+  if(fx.kind==='particle'){fx.x+=fx.vx*dt;fx.y+=fx.vy*dt;fx.vx*=.96;fx.vy*=.96;}
+  if(fx.kind==='orb'){fx.x+=fx.vx*dt;fx.y+=fx.vy*dt;}
+  if(fx.life<=0)effects.splice(i,1);
+ }
+ if(dead)return;
+ let speed=isFinal()?205:155,dx=(keys.right?1:0)-(keys.left?1:0),dy=(keys.down?1:0)-(keys.up?1:0),len=Math.hypot(dx,dy)||1;
+ player.x=Math.max(18,Math.min(702,player.x+dx/len*speed*dt));player.y=Math.max(18,Math.min(387,player.y+dy/len*speed*dt));
+ if(player.inv>0)player.inv-=dt;
+ for(let i=enemies.length-1;i>=0;i--){
+  let e=enemies[i],d=Math.hypot(player.x-e.x,player.y-e.y)||1;
+  if(d>player.r+e.r+1){e.x+=(player.x-e.x)/d*e.speed*dt;e.y+=(player.y-e.y)/d*e.speed*dt;}
+  if(e.boss){
+   e.abilityTimer-=dt;
+   if(e.abilityTimer<=0){
+    const ab=e.ability;e.abilityTimer=4.2;
+    effects.push({kind:'ring',x:e.x,y:e.y,life:.75,max:.75,color:ab.color,r:20});
+    effects.push({kind:'ring',x:player.x,y:player.y,life:.65,max:.65,color:ab.color,r:12});
+    burst(e.x,e.y,ab.color,24,1.1);
+    if(d<ab.range&&player.inv<=0){player.hp=Math.max(0,player.hp-ab.damage);player.inv=.8;statusEl.textContent='غول با جادوی '+ab.name+' به تو ضربه زد!';}
+   }
+  }
+  if(d<player.r+e.r+3&&player.inv<=0){player.hp=Math.max(0,player.hp-(e.boss?13:8));player.inv=.7;statusEl.textContent=e.boss?'غول مرحله به تو ضربه زد!':'دشمن به تو ضربه زد! مراقب سلامتی‌ات باش.';if(player.hp<=0){dead=true;statusEl.textContent='شکست خوردی! صفحه را تازه‌سازی کن تا دوباره بازی کنی.';}}
+ }
+ if(finalActive&&player.hp>0&&player.hp<player.maxHp){
+  finalHealTimer+=dt;
+  if(finalHealTimer>=1){
+   finalHealTimer-=1;
+   const oldHp=player.hp;
+   player.hp=Math.min(player.maxHp,player.hp+2);
+   if(player.hp>oldHp){effects.push({kind:'healText',x:player.x,y:player.y-25,life:.9,max:.9,color:'#65ff9a',text:'+2 HP'});}
+  }
+ }else if(!finalActive){finalHealTimer=0;}
+ if(swordCooldown>0)swordCooldown=Math.max(0,swordCooldown-dt);
+ spawnTimer+=dt;if(spawnTimer>2.6&&enemies.length<9){spawn();spawnTimer=0;}
+ if(finalUntil&&now>=finalUntil){finalUntil=0;statusEl.textContent='فاینال فرم تمام شد؛ قدرت‌ها به حالت عادی برگشتند.';}
+}
+function draw(now){
+ ctx.clearRect(0,0,720,405);
+ ctx.fillStyle='#17172d';ctx.fillRect(0,0,720,405);
+ ctx.strokeStyle='#282746';ctx.lineWidth=1;for(let x=0;x<720;x+=36){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,405);ctx.stroke()}for(let y=0;y<405;y+=36){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(720,y);ctx.stroke()}
+ const fin=isFinal();
+ effects.forEach(fx=>{
+  const a=Math.max(0,fx.life/(fx.max||1));ctx.save();ctx.globalAlpha=a;ctx.shadowBlur=18;ctx.shadowColor=fx.color;ctx.fillStyle=fx.color;ctx.strokeStyle=fx.color;
+  if(fx.kind==='healText'){ctx.font='bold 16px Tahoma';ctx.textAlign='center';ctx.fillText(fx.text,fx.x,fx.y-(1-a)*22);}
+  else if(fx.kind==='particle'){ctx.beginPath();ctx.arc(fx.x,fx.y,fx.size*a,0,Math.PI*2);ctx.fill();}
+  else if(fx.kind==='orb'){ctx.beginPath();ctx.arc(fx.x,fx.y,fx.type==='triple'?11:8,0,Math.PI*2);ctx.fill();ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(fx.x-fx.vx*.035,fx.y-fx.vy*.035);ctx.lineTo(fx.x,fx.y);ctx.stroke();}
+  else if(fx.kind==='ring'||fx.kind==='impact'){const radius=fx.kind==='ring'?(1-a)*105+fx.r:(1-a)*42+fx.r;ctx.lineWidth=fx.kind==='ring'?5:3;ctx.beginPath();ctx.arc(fx.x,fx.y,radius,0,Math.PI*2);ctx.stroke();}
+  ctx.restore();
+ });
+ enemies.forEach(e=>{
+  if(e.boss){
+   ctx.save();ctx.shadowBlur=24;ctx.shadowColor=e.ability.color;ctx.fillStyle='#391c50';ctx.strokeStyle=e.ability.color;ctx.lineWidth=4;
+   ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+   ctx.fillStyle='#fff';ctx.font='bold 11px Tahoma';ctx.textAlign='center';ctx.fillText('BOSS • '+e.ability.name,e.x,e.y-37);
+   ctx.fillStyle='#fff';ctx.fillRect(e.x-27,e.y-31,54,5);ctx.fillStyle='#ff526f';ctx.fillRect(e.x-27,e.y-31,54*Math.max(0,e.hp/e.max),5);ctx.restore();
+  }else{
+   ctx.fillStyle='#f04d78';ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#fff';ctx.fillRect(e.x-15,e.y-22,30,4);ctx.fillStyle='#65e08b';ctx.fillRect(e.x-15,e.y-22,30*Math.max(0,e.hp/e.max),4);
+  }
+ });
+ ctx.save();if(player.inv>0&&Math.floor(now/80)%2===0)ctx.globalAlpha=.45;
+ ctx.shadowBlur=fin?25:12;ctx.shadowColor=fin?'#d8a5ff':'#8b55e8';ctx.fillStyle=fin?'#d9b5ff':'#08080d';ctx.beginPath();ctx.arc(player.x,player.y,player.r+(fin?3:0),0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+ ctx.strokeStyle=fin?'#fff0a8':'#b68aff';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(player.x+8,player.y+7);ctx.lineTo(player.x+21,player.y-16);ctx.stroke();ctx.restore();
+ if(fin){ctx.strokeStyle='rgba(216,165,255,.35)';ctx.lineWidth=7;ctx.strokeRect(4,4,712,397);ctx.fillStyle='#f2d5ff';ctx.font='bold 18px Tahoma';ctx.textAlign='center';ctx.fillText('FINAL FORM  '+Math.max(0,((finalUntil-now)/1000)).toFixed(1)+'s',360,28);}
+ if(dead){ctx.fillStyle='rgba(0,0,0,.65)';ctx.fillRect(0,0,720,405);ctx.fillStyle='white';ctx.font='bold 34px Tahoma';ctx.textAlign='center';ctx.fillText('GAME OVER',360,205);}
+}
+function loop(now){let dt=Math.min(.04,(now-last)/1000||0);last=now;update(dt,now);draw(now);
+ hpFill.style.width=(player.hp/player.maxHp*100)+'%';hpText.textContent=Math.ceil(player.hp)+' / '+player.maxHp;
+ bossCountEl.textContent=bossesKilled;upgradeCountEl.textContent=upgrades;
+ swordBtn.disabled=!swordUnlocked||dead;
+ swordBtn.textContent=!swordUnlocked?'⚔️ شمشیر (پس از ۲ غول)':(swordCooldown>0?'⚔️ شمشیر ⏳ '+swordCooldown.toFixed(1)+'s':'⚔️ شمشیر آماده');
+ energyFill.style.width=energy+'%';energyText.textContent=Math.floor(energy)+'%';
+ finalBtn.disabled=energy<100||isFinal()||dead;finalBtn.textContent=isFinal()?'FINAL FORM ACTIVE':'FINAL FORM';
+ document.querySelectorAll('[data-power]').forEach(btn=>{
+  const type=btn.dataset.power,remain=cooldowns[type],label=isFinal()?finalNames[type]:normalNames[type];
+  btn.textContent=remain>0?label+' ⏳':label;
+  btn.classList.toggle('cooling',remain>0);btn.classList.toggle('ready',remain<=0);
+  if(remain>0)btn.setAttribute('data-cooldown',remain.toFixed(1)+'s');else btn.removeAttribute('data-cooldown');
+  if(remain>0)cooldowns[type]=Math.max(0,remain-dt);
+ });
+ requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+</script>
+</body></html>
